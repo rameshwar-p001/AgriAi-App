@@ -8,6 +8,7 @@ import '../models/market_price.dart';
 import '../models/weather.dart';
 import 'crop_suggestion_screen.dart';
 import 'fertilizer_tips_screen.dart';
+import 'fertilizer_recommendation_screen.dart';
 import 'market_price_screen.dart';
 import 'weather_screen.dart';
 import 'marketplace_screen.dart';
@@ -249,9 +250,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(width: 12),
         Expanded(
           child: _buildStatCard(
-            'Crops',
+            'Land Area',
             '🌾',
-            '${_currentUser?.preferredCrops.length ?? 0}',
+            _currentUser?.landAreaAcres != null ? '${_currentUser!.landAreaAcres.toStringAsFixed(1)} acres' : '0.0 acres',
             Colors.green,
           ),
         ),
@@ -333,6 +334,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const FertilizerTipsScreen()),
+              ),
+            ),
+            _buildFeatureCard(
+              '🌱 AI Fertilizer Recommendation',
+              Icons.science,
+              Colors.green,
+              'AI-powered NPK analysis & crop-specific recommendations',
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FertilizerRecommendationScreen()),
               ),
             ),
             _buildFeatureCard(
@@ -751,7 +762,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   /// Show profile dialog
   void _showProfileDialog() {
-    final authService = Provider.of<AuthService>(context, listen: false);
     
     showDialog(
       context: context,
@@ -793,8 +803,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 _buildProfileItem(Icons.agriculture, 'User Type', _currentUser?.userType ?? 'Farmer'),
                 _buildProfileItem(Icons.terrain, 'Soil Type', _currentUser?.soilType ?? 'Not specified'),
-                _buildProfileItem(Icons.eco, 'Preferred Crops', _currentUser?.preferredCrops.isNotEmpty == true 
-                    ? _currentUser!.preferredCrops.join(', ') : 'None selected'),
+                _buildProfileItem(Icons.landscape, 'Land Area', _currentUser?.landAreaAcres != null 
+                    ? '${_currentUser!.landAreaAcres.toStringAsFixed(1)} acres' : 'Not specified'),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -811,17 +821,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         foregroundColor: Colors.white,
                       ),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-                        await authService.signOut();
-                      },
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Logout'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                      ),
-                    ),
+                    // Logout functionality removed
                   ],
                 ),
               ],

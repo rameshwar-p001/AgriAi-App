@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../models/crop.dart';
 import '../models/user.dart' as app_user;
 import '../models/weather.dart';
 import '../services/api_service.dart';
-import '../services/auth_service.dart';
 import '../widgets/crop_card.dart';
 
 /// Crop suggestion screen for AgriAI app
@@ -58,9 +56,17 @@ class _CropSuggestionScreenState extends State<CropSuggestionScreen> {
   /// Load crops and user data
   Future<void> _loadData() async {
     try {
-      // Load current user from AuthService
-      final authService = Provider.of<AuthService>(context, listen: false);
-      _currentUser = authService.currentUser;
+      // Create dummy user for demo purposes
+      _currentUser = app_user.User(
+        id: 'demo_user',
+        name: 'Demo User',
+        email: 'demo@example.com',
+        phone: '1234567890',
+        soilType: 'Loamy',
+        landAreaAcres: 5.0,
+        userType: 'farmer',
+        createdAt: DateTime.now(),
+      );
 
       // Load weather data
       try {
@@ -132,14 +138,8 @@ class _CropSuggestionScreenState extends State<CropSuggestionScreen> {
       );
     }).toList();
 
-    // Sort by user preferences
-    if (_currentUser?.preferredCrops.isNotEmpty == true) {
-      _recommendedCrops.sort((a, b) {
-        final aPreferred = _currentUser!.preferredCrops.contains(a.name) ? 0 : 1;
-        final bPreferred = _currentUser!.preferredCrops.contains(b.name) ? 0 : 1;
-        return aPreferred.compareTo(bPreferred);
-      });
-    }
+    // Sort by growth duration (shorter duration first)
+    _recommendedCrops.sort((a, b) => a.growthDuration.compareTo(b.growthDuration));
 
     // Sort by growth duration for better recommendations
     _recommendedCrops.sort((a, b) => a.growthDuration.compareTo(b.growthDuration));
@@ -327,7 +327,7 @@ class _CropSuggestionScreenState extends State<CropSuggestionScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   ),
                   items: _soilTypes.map((soil) {
                     return DropdownMenuItem(
@@ -352,7 +352,7 @@ class _CropSuggestionScreenState extends State<CropSuggestionScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   ),
                   items: [
                     const DropdownMenuItem<String>(

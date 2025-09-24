@@ -1,10 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../models/marketplace_listing.dart';
 import '../models/user.dart' as app_user;
 import '../services/api_service.dart';
-import '../services/auth_service.dart';
 import '../services/image_service.dart';
 
 /// Add Marketplace Listing Screen with image upload
@@ -91,13 +89,17 @@ class _AddListingScreenState extends State<AddListingScreen> {
       return;
     }
 
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final app_user.User? currentUser = authService.currentUser;
-
-    if (currentUser == null) {
-      _showSnackBar('Please login to create listing');
-      return;
-    }
+    // Create a dummy user for demo purposes
+    final currentUser = app_user.User(
+      id: 'demo_user',
+      name: 'Demo User',
+      email: 'demo@example.com',
+      phone: '1234567890',
+      soilType: 'Loamy',
+      landAreaAcres: 5.0,
+      userType: 'farmer',
+      createdAt: DateTime.now(),
+    );
 
     setState(() {
       _isLoading = true;

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../models/marketplace_listing.dart';
 import '../models/user.dart' as app_user;
-import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../widgets/marketplace_card.dart';
 import 'add_listing_screen.dart';
@@ -43,10 +41,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
   /// Load marketplace data from Firebase/API
   Future<void> _loadData() async {
     try {
-      // Get current user from AuthService via Provider
-      final authService = Provider.of<AuthService>(context, listen: false);
-      _currentUser = authService.currentUser;
-
       // Load marketplace listings from Firebase/API instead of dummy data
       final apiService = ApiService();
       _allListings = await apiService.fetchMarketplaceListings();
@@ -61,9 +55,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
       }
     } catch (e) {
       print('Error loading marketplace data: $e');
-      // Fallback: still load some data
-      _allListings = [];
-      _filteredListings = [];
+      // Fallback: Load demo marketplace listings
+      _allListings = _getDemoMarketplaceListings();
+      _filteredListings = List.from(_allListings);
       _myListings = [];
     } finally {
       if (mounted) {
@@ -111,6 +105,112 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
   /// Get unique states
   List<String> get _uniqueStates {
     return _allListings.map((listing) => listing.state).toSet().toList()..sort();
+  }
+
+  /// Get demo marketplace listings for fallback
+  List<MarketplaceListing> _getDemoMarketplaceListings() {
+    return [
+      MarketplaceListing(
+        id: 'demo1',
+        farmerId: 'farmer1',
+        farmerName: 'Ramesh Patil',
+        contactPhone: '+91 9876543210',
+        cropName: 'Rice',
+        quantity: 5.0,
+        unit: 'quintal',
+        pricePerQuintal: 3500.0,
+        description: 'Fresh organic rice, recently harvested',
+        imageUrls: [],
+        state: 'Maharashtra',
+        location: 'Pune, Maharashtra',
+        cropVariety: 'Basmati',
+        qualityGrade: 'A',
+        isOrganic: true,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 2)),
+      ),
+      MarketplaceListing(
+        id: 'demo2',
+        farmerId: 'farmer2',
+        farmerName: 'Suresh Kumar',
+        contactPhone: '+91 9876543211',
+        cropName: 'Wheat',
+        quantity: 3.0,
+        unit: 'quintal',
+        pricePerQuintal: 4200.0,
+        description: 'High quality wheat grains',
+        imageUrls: [],
+        state: 'Uttar Pradesh',
+        location: 'Agra, Uttar Pradesh',
+        cropVariety: 'Lokvan',
+        qualityGrade: 'A',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 3)),
+      ),
+      MarketplaceListing(
+        id: 'demo3',
+        farmerId: 'farmer3',
+        farmerName: 'Lakshmi Devi',
+        contactPhone: '+91 9876543212',
+        cropName: 'Tomato',
+        quantity: 2.0,
+        unit: 'quintal',
+        pricePerQuintal: 2500.0,
+        description: 'Fresh red tomatoes, pesticide free',
+        imageUrls: [],
+        state: 'Karnataka',
+        location: 'Bangalore, Karnataka',
+        cropVariety: 'Hybrid',
+        qualityGrade: 'A',
+        isOrganic: true,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      MarketplaceListing(
+        id: 'demo4',
+        farmerId: 'farmer4',
+        farmerName: 'Prakash Singh',
+        contactPhone: '+91 9876543213',
+        cropName: 'Onion',
+        quantity: 4.0,
+        unit: 'quintal',
+        pricePerQuintal: 3000.0,
+        description: 'Quality onions, good for long storage',
+        imageUrls: [],
+        state: 'Rajasthan',
+        location: 'Jodhpur, Rajasthan',
+        cropVariety: 'Red Onion',
+        qualityGrade: 'B',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 4)),
+      ),
+      MarketplaceListing(
+        id: 'demo5',
+        farmerId: 'farmer5',
+        farmerName: 'Gita Sharma',
+        contactPhone: '+91 9876543214',
+        cropName: 'Cotton',
+        quantity: 1.5,
+        unit: 'quintal',
+        pricePerQuintal: 5500.0,
+        description: 'Premium cotton, grade A quality',
+        imageUrls: [],
+        state: 'Gujarat',
+        location: 'Surat, Gujarat',
+        cropVariety: 'BT Cotton',
+        qualityGrade: 'A',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 5)),
+      ),
+    ];
   }
 
   @override
@@ -212,7 +312,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   ),
                   items: [
                     const DropdownMenuItem<String>(
@@ -243,7 +343,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   ),
                   items: [
                     const DropdownMenuItem<String>(

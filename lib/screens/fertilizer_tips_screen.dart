@@ -185,7 +185,7 @@ class _FertilizerTipsScreenState extends State<FertilizerTipsScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   ),
                   items: [
                     const DropdownMenuItem<String>(
@@ -216,7 +216,7 @@ class _FertilizerTipsScreenState extends State<FertilizerTipsScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   ),
                   items: [
                     const DropdownMenuItem<String>(

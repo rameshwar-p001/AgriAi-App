@@ -4,8 +4,9 @@ class User {
   final String id;
   final String name;
   final String email;
+  final String phone;
   final String soilType;
-  final List<String> preferredCrops;
+  final double landAreaAcres;
   final String userType; // 'farmer' or 'buyer'
   final DateTime createdAt;
 
@@ -13,8 +14,9 @@ class User {
     required this.id,
     required this.name,
     required this.email,
+    required this.phone,
     required this.soilType,
-    required this.preferredCrops,
+    required this.landAreaAcres,
     required this.userType,
     required this.createdAt,
   });
@@ -25,8 +27,9 @@ class User {
       id: documentId,
       name: data['name'] ?? '',
       email: data['email'] ?? '',
+      phone: data['phone'] ?? '',
       soilType: data['soilType'] ?? '',
-      preferredCrops: List<String>.from(data['preferredCrops'] ?? []),
+      landAreaAcres: (data['landAreaAcres'] ?? 0.0).toDouble(),
       userType: data['userType'] ?? 'farmer',
       createdAt: data['createdAt']?.toDate() ?? DateTime.now(),
     );
@@ -37,8 +40,9 @@ class User {
     return {
       'name': name,
       'email': email,
+      'phone': phone,
       'soilType': soilType,
-      'preferredCrops': preferredCrops,
+      'landAreaAcres': landAreaAcres,
       'userType': userType,
       'createdAt': createdAt,
     };
@@ -53,8 +57,9 @@ class User {
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       email: json['email'] ?? '',
+      phone: json['phone'] ?? '',
       soilType: json['soilType'] ?? '',
-      preferredCrops: List<String>.from(json['preferredCrops'] ?? []),
+      landAreaAcres: (json['landAreaAcres'] ?? 0.0).toDouble(),
       userType: json['userType'] ?? 'farmer',
       createdAt: json['createdAt']?.toDate() ?? DateTime.now(),
     );
@@ -64,16 +69,18 @@ class User {
   User copyWith({
     String? name,
     String? email,
+    String? phone,
     String? soilType,
-    List<String>? preferredCrops,
+    double? landAreaAcres,
     String? userType,
   }) {
     return User(
       id: id,
       name: name ?? this.name,
       email: email ?? this.email,
+      phone: phone ?? this.phone,
       soilType: soilType ?? this.soilType,
-      preferredCrops: preferredCrops ?? this.preferredCrops,
+      landAreaAcres: landAreaAcres ?? this.landAreaAcres,
       userType: userType ?? this.userType,
       createdAt: createdAt,
     );

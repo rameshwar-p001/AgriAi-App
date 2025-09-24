@@ -3,14 +3,16 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 // import 'package:firebase_app_check/firebase_app_check.dart'; // Disabled temporarily
 import 'firebase_options.dart';
-import 'screens/demo_login_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'services/auth_service.dart';
 import 'screens/crop_suggestion_screen.dart';
 import 'screens/fertilizer_tips_screen.dart';
+import 'screens/fertilizer_recommendation_screen.dart';
 import 'screens/market_price_screen.dart';
 import 'screens/weather_screen.dart';
 import 'screens/marketplace_screen.dart';
-import 'services/auth_service.dart';
 import 'services/crop_recommendation_service.dart';
 import 'screens/soil_based_recommendation_screen.dart';
 import 'screens/disease_detection_screen.dart';
@@ -61,20 +63,18 @@ class AgriAIApp extends StatelessWidget {
         ),
         home: Consumer<AuthService>(
           builder: (context, authService, child) {
-            // TEMPORARY: Direct dashboard access - bypass login
-            return const DashboardScreen();
-            
-            // Original login logic (commented out temporarily)
-            // return authService.isSignedIn 
-            //     ? const DashboardScreen()
-            //     : const SimpleLoginScreen();
+            return authService.isSignedIn 
+                ? const DashboardScreen()
+                : const LoginScreen();
           },
         ),
         routes: {
-          '/demo': (context) => const DemoLoginScreen(),
+          '/login': (context) => const LoginScreen(),
+          '/register': (context) => const RegisterScreen(),
           '/dashboard': (context) => const DashboardScreen(),
           '/crop-suggestions': (context) => const CropSuggestionScreen(),
           '/fertilizer-tips': (context) => const FertilizerTipsScreen(),
+          '/fertilizer-recommendation': (context) => const FertilizerRecommendationScreen(),
           '/market-price': (context) => const MarketPriceScreen(),
           '/weather': (context) => const WeatherScreen(),
           '/marketplace': (context) => const MarketplaceScreen(),
