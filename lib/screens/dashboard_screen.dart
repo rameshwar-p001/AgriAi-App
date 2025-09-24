@@ -396,13 +396,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 MaterialPageRoute(builder: (context) => const MarketplaceScreen()),
               ),
             ),
-            _buildFeatureCard(
-              'AI Assistant',
-              Icons.smart_toy,
-              Colors.deepOrange,
-              'Get AI-powered farming advice',
-              () => _showComingSoonDialog('AI Assistant'),
-            ),
           ],
         ),
       ],
