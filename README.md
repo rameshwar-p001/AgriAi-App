@@ -249,7 +249,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Rameshwar Patil**
 - GitHub: [@rameshwar-p001](https://github.com/rameshwar-p001)
-- Email: [Contact Info]
+- Email: [rameshwarr.p001@gmail.com]
 
 ## 🙏 Acknowledgments
 
