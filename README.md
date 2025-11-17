@@ -258,12 +258,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - TensorFlow Lite for AI capabilities
 - Open source community for various packages
 
-## 📞 Support
-
-For support and queries:
-- Create an issue on GitHub
-- Check the troubleshooting section
-- Review Flutter documentation
 
 ---
 
