@@ -8,7 +8,9 @@ import '../services/image_service.dart';
 /// Add Marketplace Listing Screen with image upload
 /// Allows farmers to create new marketplace listings with photos
 class AddListingScreen extends StatefulWidget {
-  const AddListingScreen({super.key});
+  final app_user.User currentUser;
+  
+  const AddListingScreen({super.key, required this.currentUser});
 
   @override
   State<AddListingScreen> createState() => _AddListingScreenState();
@@ -38,6 +40,13 @@ class _AddListingScreenState extends State<AddListingScreen> {
     'Madhya Pradesh', 'Maharashtra', 'Punjab', 'Rajasthan', 'Tamil Nadu', 
     'Telangana', 'Uttar Pradesh', 'West Bengal'
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill contact phone with user's phone number
+    _contactController.text = widget.currentUser.phone.replaceAll('+91', '').trim();
+  }
 
   @override
   void dispose() {
@@ -89,17 +98,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
       return;
     }
 
-    // Create a dummy user for demo purposes
-    final currentUser = app_user.User(
-      id: 'demo_user',
-      name: 'Demo User',
-      email: 'demo@example.com',
-      phone: '1234567890',
-      soilType: 'Loamy',
-      landAreaAcres: 5.0,
-      userType: 'farmer',
-      createdAt: DateTime.now(),
-    );
+    // Use the passed current user
+    final currentUser = widget.currentUser;
 
     setState(() {
       _isLoading = true;

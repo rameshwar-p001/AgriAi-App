@@ -335,7 +335,7 @@ class _SoilTestFormState extends State<SoilTestForm> {
                 Container(
                   margin: const EdgeInsets.only(bottom: 16),
                   child: DropdownButtonFormField<String>(
-                    value: _selectedCrop,
+                    initialValue: _selectedCrop,
                     decoration: InputDecoration(
                       labelText: 'Select Crop',
                       border: OutlineInputBorder(
@@ -685,7 +685,7 @@ class AnalysisResultsTab extends StatelessWidget {
           const SizedBox(height: 16),
           
           // PDF Export Button
-          Container(
+          SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () => _exportToPDF(context, recommendation!),
@@ -1112,7 +1112,7 @@ class AnalysisResultsTab extends StatelessWidget {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -1652,7 +1652,7 @@ class ApplicationScheduleTab extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                            )).toList(),
+                            )),
                           ],
                           
                           if (!isCompleted) ...[
@@ -1692,7 +1692,7 @@ class ApplicationScheduleTab extends StatelessWidget {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -2066,7 +2066,7 @@ class ProductsTab extends StatelessWidget {
                           ),
                         ],
                       ),
-                    )).toList(),
+                    )),
                   ],
                   
                   const SizedBox(height: 12),
@@ -2118,7 +2118,7 @@ class ProductsTab extends StatelessWidget {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -2204,7 +2204,7 @@ class ProductsTab extends StatelessWidget {
               ...product.benefits.map((benefit) => Padding(
                 padding: const EdgeInsets.only(left: 8, top: 4),
                 child: Text('• $benefit'),
-              )).toList(),
+              )),
             ],
           ),
         ),

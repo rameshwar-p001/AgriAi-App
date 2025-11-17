@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/crop.dart';
 import '../models/user.dart' as app_user;
 import '../models/weather.dart';
@@ -39,12 +41,20 @@ class _CropSuggestionScreenState extends State<CropSuggestionScreen> {
     'loamy',
     'sandy',
     'clay',
+    'peaty',
+    'saline',
+    'alkaline',
+    'coastal',
+    'volcanic',
   ];
 
   final List<String> _seasons = [
     'kharif',
     'rabi',
     'summer',
+    'zaid',
+    'perennial',
+    'winter',
   ];
 
   @override
@@ -56,17 +66,55 @@ class _CropSuggestionScreenState extends State<CropSuggestionScreen> {
   /// Load crops and user data
   Future<void> _loadData() async {
     try {
-      // Create dummy user for demo purposes
-      _currentUser = app_user.User(
-        id: 'demo_user',
-        name: 'Demo User',
-        email: 'demo@example.com',
-        phone: '1234567890',
-        soilType: 'Loamy',
-        landAreaAcres: 5.0,
-        userType: 'farmer',
-        createdAt: DateTime.now(),
-      );
+      // Load actual user data from Firebase
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userData = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        
+        if (userData.exists) {
+          final data = userData.data()!;
+          _currentUser = app_user.User(
+            id: user.uid,
+            name: data['name'] ?? 'Demo User',
+            email: data['email'] ?? user.email ?? 'demo@example.com',
+            phone: data['phone'] ?? '1234567890',
+            soilType: data['soilType'] ?? 'Loamy',
+            landAreaAcres: (data['landAreaAcres'] ?? 5.0).toDouble(),
+            userType: data['userType'] ?? 'farmer',
+            language: data['language'] ?? 'english',
+            createdAt: data['createdAt']?.toDate() ?? DateTime.now(),
+          );
+        } else {
+          // Fallback to demo user if no data found
+          _currentUser = app_user.User(
+            id: user.uid,
+            name: 'Demo User',
+            email: user.email ?? 'demo@example.com',
+            phone: '1234567890',
+            soilType: 'Loamy',
+            landAreaAcres: 5.0,
+            userType: 'farmer',
+            language: 'english',
+            createdAt: DateTime.now(),
+          );
+        }
+      } else {
+        // Fallback to demo user if not logged in
+        _currentUser = app_user.User(
+          id: 'demo_user',
+          name: 'Demo User',
+          email: 'demo@example.com',
+          phone: '1234567890',
+          soilType: 'Loamy',
+          landAreaAcres: 5.0,
+          userType: 'farmer',
+          language: 'english',
+          createdAt: DateTime.now(),
+        );
+      }
 
       // Load weather data
       try {

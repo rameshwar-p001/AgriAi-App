@@ -1,860 +1,851 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
-import '../services/firestore_service.dart';
 import '../services/api_service.dart';
-import '../models/user.dart' as app_user;
-import '../models/market_price.dart';
 import '../models/weather.dart';
-import 'crop_suggestion_screen.dart';
-import 'fertilizer_tips_screen.dart';
-import 'fertilizer_recommendation_screen.dart';
-import 'market_price_screen.dart';
-import 'weather_screen.dart';
-import 'marketplace_screen.dart';
 import 'login_screen.dart';
+import 'weather_screen.dart';
 import 'disease_detection_screen.dart';
+import 'agriai_chat_screen.dart';
+
+import 'fertilizer_tips_screen.dart';
+import 'market_price_screen.dart';
+import 'fertilizer_recommendation_screen.dart';
+import 'marketplace_screen.dart';
 import 'soil_based_recommendation_screen.dart';
+import '../models/user.dart' as app_user;
 
-/// Main dashboard screen for AgriAI app
-/// Provides navigation to all features and overview information
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
-
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  _DashboardScreenState createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final ApiService _apiService = ApiService();
-  
   app_user.User? _currentUser;
-  List<MarketPrice> _recentPrices = [];
   Weather? _currentWeather;
   bool _isLoading = true;
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
     super.initState();
-    _loadDashboardData();
+    _loadUserData();
+    _loadWeatherData();
   }
 
-  /// Load dashboard data
-  Future<void> _loadDashboardData() async {
+  Future<void> _loadUserData() async {
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final FirebaseAuth _auth = FirebaseAuth.instance;
+      final User? firebaseUser = _auth.currentUser;
       
-      if (authService.currentUser != null) {
-        // Use current user from AuthService
-        _currentUser = authService.currentUser;
+      if (firebaseUser != null) {
+        final userData = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .get();
         
-        // Load recent market prices
-        _recentPrices = await _apiService.fetchMarketPrices();
-        _recentPrices = _recentPrices.take(3).toList();
-        
-        // Load current weather
-        _currentWeather = await _apiService.fetchWeatherData('Bangalore');
+        if (userData.exists) {
+          final data = userData.data()!;
+          setState(() {
+            _currentUser = app_user.User(
+              id: firebaseUser.uid,
+              name: data['name'] ?? 'User',
+              email: data['email'] ?? firebaseUser.email ?? 'user@example.com',
+              phone: data['phone'] ?? '',
+              soilType: data['soilType'] ?? 'Loamy',
+              landAreaAcres: (data['landAreaAcres'] ?? 0.0).toDouble(),
+              userType: data['userType'] ?? 'farmer',
+              language: data['language'] ?? 'english',
+              createdAt: data['createdAt']?.toDate() ?? DateTime.now(),
+            );
+            _isLoading = false;
+          });
+        } else {
+          print('User data not found in Firestore');
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
-      print('Error loading dashboard data: $e');
-    } finally {
+      print('Error loading user data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadWeatherData() async {
+    try {
+      _currentWeather = await _apiService.fetchWeatherData('Pune');
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {});
       }
+    } catch (e) {
+      print('Error loading weather data: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'AgriAI Dashboard',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.green[600],
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              setState(() => _isLoading = true);
-              _loadDashboardData();
-            },
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              switch (value) {
-                case 'profile':
-                  _showProfileDialog();
-                  break;
-                case 'logout':
-                  await _handleLogout();
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return [
-                const PopupMenuItem<String>(
-                  value: 'profile',
-                  child: Row(
-                    children: [
-                      Icon(Icons.person, color: Colors.grey),
-                      SizedBox(width: 8),
-                      Text('Profile'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Logout'),
-                    ],
-                  ),
-                ),
-              ];
-            },
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadDashboardData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Welcome section
-                    _buildWelcomeSection(),
-                    const SizedBox(height: 24),
-                    
-                    // Quick stats
-                    _buildQuickStats(),
-                    const SizedBox(height: 24),
-                    
-                    // Main features grid
-                    _buildFeaturesGrid(),
-                    const SizedBox(height: 24),
-                    
-                    // Recent market prices
-                    if (_recentPrices.isNotEmpty) ...[
-                      _buildRecentPricesSection(),
-                      const SizedBox(height: 24),
-                    ],
-                    
-                    // Weather overview
-                    if (_currentWeather != null) ...[
-                      _buildWeatherSection(),
-                      const SizedBox(height: 24),
-                    ],
-                    
-                    // Tips section
-                    _buildTipsSection(),
-                  ],
+      backgroundColor: Color(0xFFF5F5F5),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: Color(0xFF4CAF50),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(0),
+                  bottomRight: Radius.circular(0),
                 ),
               ),
-            ),
-    );
-  }
-
-  /// Build welcome section
-  Widget _buildWelcomeSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.green[400]!, Colors.green[600]!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome back,',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  _currentUser?.name ?? 'Farmer',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _currentUser?.userType.toUpperCase() ?? 'FARMER',
-                    style: const TextStyle(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'AgriAI Dashboard',
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-              ],
+                  Row(
+                    children: [
+                     
+                      IconButton(
+                        icon: Icon(Icons.person, color: Colors.white, size: 24),
+                        onPressed: () {
+                          _showProfileDialog();
+                        },
+                      ),
+                      PopupMenuButton(
+                        icon: Icon(Icons.more_vert, color: Colors.white, size: 24),
+                        onSelected: (value) async {
+                          if (value == 'logout') {
+                            await AuthService().signOut();
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(builder: (context) => LoginScreen()),
+                            );
+                          }
+                        },
+                        itemBuilder: (BuildContext context) => [
+                          PopupMenuItem(
+                            value: 'logout',
+                            child: Text('Logout'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          Icon(
-            Icons.agriculture,
-            size: 60,
-            color: Colors.white.withOpacity(0.8),
-          ),
-        ],
+            
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Welcome Card
+                    Container(
+                      margin: EdgeInsets.all(16),
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF4CAF50),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Welcome back,',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  _currentUser?.name ?? 'User',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    'FARMER',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                            child: Icon(
+                              Icons.agriculture,
+                              color: Colors.white,
+                              size: 36,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Quick Info Cards Row
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _buildQuickInfoCard(
+                              'Weather',
+                              _currentWeather != null ? '${_currentWeather!.temperature.toInt()}°C' : '26°C',
+                              Icons.wb_sunny,
+                              Color(0xFF2196F3),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: _buildQuickInfoCard(
+                              'Soil Type',
+                              _currentUser?.soilType ?? 'Loamy',
+                              Icons.eco,
+                              Color(0xFF8BC34A),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: _buildQuickInfoCard(
+                              'Land Area',
+                              '${(_currentUser?.landAreaAcres ?? 0.0).toStringAsFixed(1)} acres',
+                              Icons.grass,
+                              Color(0xFF4CAF50),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Features Section
+                    Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Features',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          GridView.count(
+                            crossAxisCount: 2,
+                            shrinkWrap: true,
+                            physics: NeverScrollableScrollPhysics(),
+                            childAspectRatio: 1.0,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            children: [
+                              _buildFeatureCard(
+                                'Fertilizer Tips',
+                                'Find the right fertilizer for your crops',
+                                Icons.science,
+                                Color(0xFFFF9800),
+                                () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => FertilizerTipsScreen()),
+                                ),
+                              ),
+                              _buildFeatureCard(
+                                'AI Fertilizer Recommendation',
+                                'AI-powered NPK analysis & crop-specific recommendations',
+                                Icons.psychology,
+                                Color(0xFF4CAF50),
+                                () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => FertilizerRecommendationScreen()),
+                                ),
+                              ),
+                              _buildFeatureCard(
+                                'Market Prices',
+                                'Check latest crop prices in markets',
+                                Icons.trending_up,
+                                Color(0xFF2196F3),
+                                () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => MarketPriceScreen()),
+                                ),
+                              ),
+                              _buildFeatureCard(
+                                'Weather Info',
+                                'Get weather updates and forecasts',
+                                Icons.wb_sunny,
+                                Color(0xFFFFEB3B),
+                                () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => WeatherScreen()),
+                                ),
+                              ),
+                              _buildFeatureCard(
+                                'Disease Detection',
+                                'Identify crop diseases with AI',
+                                Icons.local_hospital,
+                                Color(0xFFF44336),
+                                () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => DiseaseDetectionScreen()),
+                                ),
+                              ),
+                              _buildFeatureCard(
+                                'Soil Based Recommendation',
+                                'Get crop recommendations based on soil analysis',
+                                Icons.bar_chart,
+                                Color(0xFF009688),
+                                () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => SoilBasedRecommendationScreen()),
+                                ),
+                              ),
+                              _buildFeatureCard(
+                                'Marketplace',
+                                'Buy and sell crops directly',
+                                Icons.store,
+                                Color(0xFF9C27B0),
+                                () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => MarketplaceScreen()),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Recent Prices Section
+                    Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Recent Prices',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF333333),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => MarketPriceScreen()),
+                                ),
+                                child: Text(
+                                  'View All',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF4CAF50),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 12),
+                          Container(
+                            height: 120,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                _buildPriceCard('Paddy(Dhan)(Common)', '₹2320/quintal', '+0.00%'),
+                                _buildPriceCard('Paddy(Dhan)(Common)', '₹2340/quintal', '+0.00%'),
+                                _buildPriceCard('Potato', '₹2100/quintal', '+0.00%'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Weather Today
+                    Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Weather Today',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF333333),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => WeatherScreen()),
+                                ),
+                                child: Text(
+                                  'View Details',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF4CAF50),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 12),
+                          Container(
+                            padding: EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF42A5F5), Color(0xFF1976D2)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: _currentWeather != null 
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            _currentWeather!.weatherIcon,
+                                            style: TextStyle(fontSize: 40),
+                                          ),
+                                          SizedBox(width: 16),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '${_currentWeather!.temperature.toInt()}°C',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 36,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                _currentWeather!.weatherCondition,
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Humidity: ${_currentWeather!.humidity.toInt()}%',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Container(
+                                        padding: EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.lightbulb, color: Colors.white, size: 20),
+                                            SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                _currentWeather!.farmingAdvice,
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(Icons.wb_sunny, color: Colors.white, size: 40),
+                                          SizedBox(width: 16),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '26°C',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 36,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                'scattered clouds',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Humidity: 68%',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Container(
+                                        padding: EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.lightbulb, color: Colors.white, size: 20),
+                                            SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                'Good weather conditions for farming activities.',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Farming Tips
+                    Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Farming Tips',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          _buildFarmingTip(
+                            'Soil Health',
+                            'Test your soil pH regularly for optimal crop growth',
+                            Icons.eco,
+                          ),
+                          _buildFarmingTip(
+                            'Water Management',
+                            'Use drip irrigation to conserve water and improve yield',
+                            Icons.water_drop,
+                          ),
+                          _buildFarmingTip(
+                            'Crop Rotation',
+                            'Rotate crops to maintain soil fertility and reduce pests',
+                            Icons.autorenew,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AgriAIChatScreen()),
+          );
+        },
+        icon: Icon(Icons.chat, color: Colors.white),
+        label: Text('AI Assistant 🤖', style: TextStyle(color: Colors.white)),
+        backgroundColor: Color(0xFF4CAF50),
       ),
     );
   }
 
-  /// Build quick stats section
-  Widget _buildQuickStats() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            'Weather',
-            _currentWeather?.weatherIcon ?? '🌤️',
-            '${_currentWeather?.temperature.toInt() ?? 25}°C',
-            Colors.blue,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            'Soil Type',
-            '🌱',
-            _currentUser?.soilType.toUpperCase() ?? 'ALLUVIAL',
-            Colors.brown,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            'Land Area',
-            '🌾',
-            _currentUser?.landAreaAcres != null ? '${_currentUser!.landAreaAcres.toStringAsFixed(1)} acres' : '0.0 acres',
-            Colors.green,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Build stat card
-  Widget _buildStatCard(String title, String icon, String value, Color color) {
+  Widget _buildQuickInfoCard(String title, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Text(icon, style: const TextStyle(fontSize: 24)),
-          const SizedBox(height: 8),
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          SizedBox(height: 8),
           Text(
             title,
             style: TextStyle(
-              color: color,
               fontSize: 12,
+              color: Color(0xFF666666),
               fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          if (value.isNotEmpty) ...[
+            SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF333333),
+              ),
+              textAlign: TextAlign.center,
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard(String title, String subtitle, IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            SizedBox(height: 12),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF333333),
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+            ),
+            SizedBox(height: 6),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 11,
+                color: Color(0xFF666666),
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPriceCard(String crop, String price, String change) {
+    return Container(
+      width: 160,
+      margin: EdgeInsets.only(right: 12),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFFE8F5E8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            crop,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF333333),
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: 8),
+          Text(
+            price,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2E7D32),
+            ),
+          ),
+          SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                Icons.trending_up,
+                color: Color(0xFF4CAF50),
+                size: 14,
+              ),
+              SizedBox(width: 4),
+              Text(
+                change,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF4CAF50),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  /// Build features grid
-  Widget _buildFeaturesGrid() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Features',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.9,
-          children: [
-            _buildFeatureCard(
-              'Crop Suggestion',
-              Icons.eco,
-              Colors.green,
-              'Get recommendations based on soil and weather',
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CropSuggestionScreen()),
-              ),
-            ),
-            _buildFeatureCard(
-              'Fertilizer Tips',
-              Icons.grass,
-              Colors.orange,
-              'Find the right fertilizer for your crops',
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const FertilizerTipsScreen()),
-              ),
-            ),
-            _buildFeatureCard(
-              '🌱 AI Fertilizer Recommendation',
-              Icons.science,
-              Colors.green,
-              'AI-powered NPK analysis & crop-specific recommendations',
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const FertilizerRecommendationScreen()),
-              ),
-            ),
-            _buildFeatureCard(
-              'Market Prices',
-              Icons.trending_up,
-              Colors.blue,
-              'Check latest crop prices in markets',
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const MarketPriceScreen()),
-              ),
-            ),
-            _buildFeatureCard(
-              'Weather Info',
-              Icons.wb_sunny,
-              Colors.amber,
-              'Get weather updates and forecasts',
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const WeatherScreen()),
-              ),
-            ),
-            _buildFeatureCard(
-              'Disease Detection',
-              Icons.healing,
-              Colors.red,
-              'Identify crop diseases with AI',
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const DiseaseDetectionScreen()),
-              ),
-            ),
-            _buildFeatureCard(
-              'Soil Based Recommendation',
-              Icons.analytics,
-              Colors.teal,
-              'Get crop recommendations based on soil analysis',
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SoilBasedRecommendationScreen()),
-              ),
-            ),
-            _buildFeatureCard(
-              'Marketplace',
-              Icons.store,
-              Colors.purple,
-              'Buy and sell crops directly',
-              () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const MarketplaceScreen()),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// Build feature card
-  Widget _buildFeatureCard(
-    String title,
-    IconData icon,
-    Color color,
-    String description,
-    VoidCallback onTap,
-  ) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
+  Widget _buildFarmingTip(String title, String description, IconData icon) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFFF8F8F8),
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min, // Use minimum space needed
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1), // Back to withOpacity for compatibility
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 28),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 2),
-              Flexible(
-                child: Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
-    );
-  }
-
-  /// Build recent prices section
-  Widget _buildRecentPricesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Recent Prices',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const MarketPriceScreen()),
-              ),
-              child: const Text('View All'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 120,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _recentPrices.length,
-            itemBuilder: (context, index) {
-              final price = _recentPrices[index];
-              return Container(
-                width: 160,
-                margin: const EdgeInsets.only(right: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green[200]!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      price.cropName,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green[800],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '₹${price.price.toInt()}/quintal',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green[600],
-                      ),
-                    ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        Icon(
-                          price.changePercentage >= 0 ? Icons.trending_up : Icons.trending_down,
-                          size: 16,
-                          color: price.changePercentage >= 0 ? Colors.green : Colors.red,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          price.formattedChange,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: price.changePercentage >= 0 ? Colors.green : Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Build weather section
-  Widget _buildWeatherSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Weather Today',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const WeatherScreen()),
-              ),
-              child: const Text('View Details'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blue[400]!, Colors.blue[600]!],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Text(
-                _currentWeather!.weatherIcon,
-                style: const TextStyle(fontSize: 48),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_currentWeather!.temperature.toInt()}°C',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      _currentWeather!.description,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Humidity: ${_currentWeather!.humidity.toInt()}%',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.amber[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.amber[200]!),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.tips_and_updates, color: Colors.amber[700]),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _currentWeather!.farmingAdvice,
-                  style: TextStyle(
-                    color: Colors.amber[800],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Build tips section
-  Widget _buildTipsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Farming Tips',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.green[50],
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              _buildTipItem(
-                '🌱',
-                'Soil Health',
-                'Test your soil pH regularly for optimal crop growth',
-              ),
-              const Divider(),
-              _buildTipItem(
-                '💧',
-                'Water Management',
-                'Use drip irrigation to conserve water and improve yield',
-              ),
-              const Divider(),
-              _buildTipItem(
-                '🌾',
-                'Crop Rotation',
-                'Rotate crops to maintain soil fertility and reduce pests',
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Build tip item
-  Widget _buildTipItem(String emoji, String title, String description) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 24)),
-          const SizedBox(width: 12),
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Color(0xFF4CAF50).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: Color(0xFF4CAF50), size: 20),
+          ),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    color: Color(0xFF333333),
                   ),
                 ),
+                SizedBox(height: 4),
                 Text(
                   description,
                   style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Handle logout
-  Future<void> _handleLogout() async {
-    try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      await authService.signOut();
-      
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error logging out: $e'),
-            backgroundColor: Colors.red[600],
-          ),
-        );
-      }
-    }
-  }
-
-  /// Show profile dialog
-  void _showProfileDialog() {
-    
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.green.shade100,
-                child: Icon(Icons.person, size: 40, color: Colors.green.shade700),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _currentUser?.name ?? 'User',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      _currentUser?.email ?? 'No email',
-                      style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildProfileItem(Icons.agriculture, 'User Type', _currentUser?.userType ?? 'Farmer'),
-                _buildProfileItem(Icons.terrain, 'Soil Type', _currentUser?.soilType ?? 'Not specified'),
-                _buildProfileItem(Icons.landscape, 'Land Area', _currentUser?.landAreaAcres != null 
-                    ? '${_currentUser!.landAreaAcres.toStringAsFixed(1)} acres' : 'Not specified'),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _showEditProfileDialog();
-                      },
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Edit'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                    // Logout functionality removed
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildProfileItem(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.green.shade700, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF666666),
                   ),
                 ),
               ],
@@ -865,14 +856,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Show edit profile dialog
-  void _showEditProfileDialog() {
-    final nameController = TextEditingController(text: _currentUser?.name ?? '');
-    final soilTypes = ['alluvial', 'black', 'red', 'laterite', 'desert', 'mountain', 'loamy', 'sandy', 'clay'];
+  /// Show profile edit dialog
+  void _showProfileDialog() {
+    final TextEditingController nameController = TextEditingController(text: _currentUser?.name ?? '');
+    final TextEditingController phoneController = TextEditingController(text: _currentUser?.phone ?? '');
+    final TextEditingController landAreaController = TextEditingController(text: _currentUser?.landAreaAcres.toString() ?? '5.0');
     
-    // Ensure selectedSoilType is a valid value from the soilTypes list
-    String userSoilType = _currentUser?.soilType ?? 'alluvial';
-    String selectedSoilType = soilTypes.contains(userSoilType) ? userSoilType : 'alluvial';
+    String selectedSoilType = _currentUser?.soilType ?? 'Loamy';
+    
+    final List<String> soilTypes = [
+      'Alluvial',
+      'Black',
+      'Red',
+      'Laterite',
+      'Desert',
+      'Mountain',
+      'Loamy',
+      'Sandy',
+      'Clay',
+      'Peaty',
+      'Saline',
+    ];
 
     showDialog(
       context: context,
@@ -880,30 +884,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('Edit Profile'),
+              title: Row(
+                children: [
+                  Icon(Icons.person, color: Color(0xFF4CAF50)),
+                  SizedBox(width: 8),
+                  Text('Edit Profile'),
+                ],
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
                       controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Name',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: 'Full Name',
+                        prefixIcon: Icon(Icons.person_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        prefixIcon: Icon(Icons.phone_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      initialValue: selectedSoilType,
-                      decoration: const InputDecoration(
+                      value: selectedSoilType,
+                      decoration: InputDecoration(
                         labelText: 'Soil Type',
-                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.terrain),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       items: soilTypes.map((soil) {
                         return DropdownMenuItem(
                           value: soil,
-                          child: Text(soil.toUpperCase()),
+                          child: Text(soil),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -912,47 +939,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         });
                       },
                     ),
+                    SizedBox(height: 16),
+                    TextField(
+                      controller: landAreaController,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: 'Land Area (Acres)',
+                        prefixIcon: Icon(Icons.landscape_outlined),
+                        suffixText: 'acres',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text('Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    if (_currentUser != null) {
-                      // Update user data
-                      final updatedUser = _currentUser!.copyWith(
-                        name: nameController.text,
-                        soilType: selectedSoilType,
-                      );
-                      
-                      // Save to Firestore
-                      final firestoreService = FirestoreService();
-                      await firestoreService.updateUser(updatedUser);
-                      
-                      // Update local state
-                      setState(() {
-                        _currentUser = updatedUser;
-                      });
-                      
-                      Navigator.of(context).pop();
-                      
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Profile updated successfully!'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
+                    await _updateProfile(
+                      nameController.text,
+                      phoneController.text,
+                      selectedSoilType,
+                      double.tryParse(landAreaController.text) ?? 5.0,
+                    );
+                    Navigator.of(context).pop();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: Color(0xFF4CAF50),
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Save'),
+                  child: Text('Save Changes'),
                 ),
               ],
             );
@@ -962,22 +984,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Show coming soon dialog
-  void _showComingSoonDialog(String feature) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(feature),
-          content: const Text('This feature is coming soon! Stay tuned for updates.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
+  /// Update user profile
+  Future<void> _updateProfile(String name, String phone, String soilType, double landArea) async {
+    try {
+      final FirebaseAuth _auth = FirebaseAuth.instance;
+      final User? firebaseUser = _auth.currentUser;
+      
+      if (firebaseUser != null) {
+        // Update in Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .update({
+          'name': name,
+          'phone': phone,
+          'soilType': soilType,
+          'landAreaAcres': landArea,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        // Update local user object
+        setState(() {
+          _currentUser = app_user.User(
+            id: firebaseUser.uid,
+            name: name,
+            email: _currentUser?.email ?? firebaseUser.email ?? 'user@example.com',
+            phone: phone,
+            soilType: soilType,
+            landAreaAcres: landArea,
+            userType: _currentUser?.userType ?? 'farmer',
+            language: _currentUser?.language ?? 'english',
+            createdAt: _currentUser?.createdAt ?? DateTime.now(),
+          );
+        });
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Profile updated successfully!'),
+            backgroundColor: Color(0xFF4CAF50),
+            duration: Duration(seconds: 2),
+          ),
         );
-      },
-    );
+      }
+    } catch (e) {
+      print('Error updating profile: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update profile. Please try again.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 }

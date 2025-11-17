@@ -393,8 +393,9 @@ class FertilizerRecommendationService {
     
     // Adjust based on analysis certainty
     final deficiencyCount = (analysisResults['deficiencies'] as List).length;
-    if (deficiencyCount == 0) score += 0.1;
-    else if (deficiencyCount > 3) score -= 0.1;
+    if (deficiencyCount == 0) {
+      score += 0.1;
+    } else if (deficiencyCount > 3) score -= 0.1;
     
     return math.min(1.0, math.max(0.0, score));
   }

@@ -17,6 +17,8 @@ import 'services/crop_recommendation_service.dart';
 import 'screens/soil_based_recommendation_screen.dart';
 import 'screens/disease_detection_screen.dart';
 
+import 'services/ai_chatbot_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -50,8 +52,11 @@ class AgriAIApp extends StatelessWidget {
   const AgriAIApp({super.key});
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => AuthService(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AuthService()),
+        ChangeNotifierProvider(create: (context) => AIChatbotService()),
+      ],
       child: MaterialApp(
         title: 'AgriAI - Smart Farming Assistant',
         theme: ThemeData(
@@ -64,14 +69,14 @@ class AgriAIApp extends StatelessWidget {
         home: Consumer<AuthService>(
           builder: (context, authService, child) {
             return authService.isSignedIn 
-                ? const DashboardScreen()
+                ? DashboardScreen()
                 : const LoginScreen();
           },
         ),
         routes: {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
-          '/dashboard': (context) => const DashboardScreen(),
+          '/dashboard': (context) => DashboardScreen(),
           '/crop-suggestions': (context) => const CropSuggestionScreen(),
           '/fertilizer-tips': (context) => const FertilizerTipsScreen(),
           '/fertilizer-recommendation': (context) => const FertilizerRecommendationScreen(),

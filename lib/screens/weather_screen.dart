@@ -18,7 +18,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
   Weather? _currentWeather;
   List<Weather> _forecast = [];
   bool _isLoading = true;
-  String _currentLocation = 'Bangalore';
+  String _currentLocation = 'Pune';
 
   @override
   void initState() {

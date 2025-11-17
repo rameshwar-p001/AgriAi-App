@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/marketplace_listing.dart';
 import '../models/user.dart' as app_user;
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import '../widgets/marketplace_card.dart';
 import 'add_listing_screen.dart';
 
@@ -29,7 +31,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      _currentUser = authService.currentUser;
+      _loadData();
+    });
   }
 
   @override
@@ -50,6 +56,14 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
       // Load user's own listings if logged in
       if (_currentUser != null) {
         _myListings = await apiService.fetchMarketplaceListingsByFarmer(_currentUser!.id);
+        
+        // Also add user's listings to all listings if not already present
+        for (var myListing in _myListings) {
+          if (!_allListings.any((listing) => listing.id == myListing.id)) {
+            _allListings.add(myListing);
+          }
+        }
+        _filteredListings = List.from(_allListings);
       } else {
         _myListings = [];
       }
@@ -58,7 +72,15 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
       // Fallback: Load demo marketplace listings
       _allListings = _getDemoMarketplaceListings();
       _filteredListings = List.from(_allListings);
-      _myListings = [];
+      
+      // Filter demo listings by current user if available
+      if (_currentUser != null) {
+        _myListings = _allListings
+            .where((listing) => listing.farmerId == _currentUser!.id)
+            .toList();
+      } else {
+        _myListings = [];
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -110,8 +132,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
   /// Get demo marketplace listings for fallback
   List<MarketplaceListing> _getDemoMarketplaceListings() {
     return [
+      // Cereal Crops
       MarketplaceListing(
-        id: 'demo1',
+        id: 'mp_rice_001',
         farmerId: 'farmer1',
         farmerName: 'Ramesh Patil',
         contactPhone: '+91 9876543210',
@@ -119,7 +142,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
         quantity: 5.0,
         unit: 'quintal',
         pricePerQuintal: 3500.0,
-        description: 'Fresh organic rice, recently harvested',
+        description: 'Fresh organic rice, recently harvested. No chemicals used.',
         imageUrls: [],
         state: 'Maharashtra',
         location: 'Pune, Maharashtra',
@@ -131,7 +154,27 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
         dateListed: DateTime.now().subtract(const Duration(days: 2)),
       ),
       MarketplaceListing(
-        id: 'demo2',
+        id: 'mp_rice_002',
+        farmerId: 'farmer5',
+        farmerName: 'Harpal Singh',
+        contactPhone: '+91 9876543220',
+        cropName: 'Rice',
+        quantity: 8.0,
+        unit: 'quintal',
+        pricePerQuintal: 3400.0,
+        description: 'Premium quality Pusa Basmati rice, aged for better aroma.',
+        imageUrls: [],
+        state: 'Haryana',
+        location: 'Karnal, Haryana',
+        cropVariety: 'Pusa Basmati',
+        qualityGrade: 'A+',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      MarketplaceListing(
+        id: 'mp_wheat_001',
         farmerId: 'farmer2',
         farmerName: 'Suresh Kumar',
         contactPhone: '+91 9876543211',
@@ -139,7 +182,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
         quantity: 3.0,
         unit: 'quintal',
         pricePerQuintal: 4200.0,
-        description: 'High quality wheat grains',
+        description: 'High quality wheat grains, perfect for flour making.',
         imageUrls: [],
         state: 'Uttar Pradesh',
         location: 'Agra, Uttar Pradesh',
@@ -151,7 +194,49 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
         dateListed: DateTime.now().subtract(const Duration(days: 3)),
       ),
       MarketplaceListing(
-        id: 'demo3',
+        id: 'mp_wheat_002',
+        farmerId: 'farmer6',
+        farmerName: 'Mohan Lal',
+        contactPhone: '+91 9876543221',
+        cropName: 'Wheat',
+        quantity: 6.5,
+        unit: 'quintal',
+        pricePerQuintal: 4100.0,
+        description: 'Durum wheat variety, excellent for pasta and bread making.',
+        imageUrls: [],
+        state: 'Madhya Pradesh',
+        location: 'Bhopal, Madhya Pradesh',
+        cropVariety: 'Durum',
+        qualityGrade: 'A',
+        isOrganic: true,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 2)),
+      ),
+      MarketplaceListing(
+        id: 'mp_maize_001',
+        farmerId: 'farmer7',
+        farmerName: 'Venkatesh Reddy',
+        contactPhone: '+91 9876543222',
+        cropName: 'Maize',
+        quantity: 4.0,
+        unit: 'quintal',
+        pricePerQuintal: 2800.0,
+        description: 'Yellow maize, suitable for animal feed and food processing.',
+        imageUrls: [],
+        state: 'Karnataka',
+        location: 'Davangere, Karnataka',
+        cropVariety: 'Yellow Dent',
+        qualityGrade: 'B+',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 4)),
+      ),
+      
+      // Vegetables
+      MarketplaceListing(
+        id: 'mp_tomato_001',
         farmerId: 'farmer3',
         farmerName: 'Lakshmi Devi',
         contactPhone: '+91 9876543212',
@@ -159,7 +244,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
         quantity: 2.0,
         unit: 'quintal',
         pricePerQuintal: 2500.0,
-        description: 'Fresh red tomatoes, pesticide free',
+        description: 'Fresh red tomatoes, pesticide free, perfect for cooking.',
         imageUrls: [],
         state: 'Karnataka',
         location: 'Bangalore, Karnataka',
@@ -171,7 +256,27 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
         dateListed: DateTime.now().subtract(const Duration(days: 1)),
       ),
       MarketplaceListing(
-        id: 'demo4',
+        id: 'mp_tomato_002',
+        farmerId: 'farmer8',
+        farmerName: 'Rajesh Sharma',
+        contactPhone: '+91 9876543223',
+        cropName: 'Tomato',
+        quantity: 3.5,
+        unit: 'quintal',
+        pricePerQuintal: 2800.0,
+        description: 'Premium cherry tomatoes, ideal for salads and restaurants.',
+        imageUrls: [],
+        state: 'Delhi',
+        location: 'Ghaziabad, Delhi NCR',
+        cropVariety: 'Cherry Tomato',
+        qualityGrade: 'A+',
+        isOrganic: true,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(hours: 8)),
+      ),
+      MarketplaceListing(
+        id: 'mp_onion_001',
         farmerId: 'farmer4',
         farmerName: 'Prakash Singh',
         contactPhone: '+91 9876543213',
@@ -179,7 +284,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
         quantity: 4.0,
         unit: 'quintal',
         pricePerQuintal: 3000.0,
-        description: 'Quality onions, good for long storage',
+        description: 'Quality red onions, good for long storage, low moisture.',
         imageUrls: [],
         state: 'Rajasthan',
         location: 'Jodhpur, Rajasthan',
@@ -191,15 +296,77 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
         dateListed: DateTime.now().subtract(const Duration(days: 4)),
       ),
       MarketplaceListing(
-        id: 'demo5',
-        farmerId: 'farmer5',
+        id: 'mp_onion_002',
+        farmerId: 'farmer9',
+        farmerName: 'Kiran Patil',
+        contactPhone: '+91 9876543224',
+        cropName: 'Onion',
+        quantity: 6.0,
+        unit: 'quintal',
+        pricePerQuintal: 3200.0,
+        description: 'White onions, premium quality from Nashik region.',
+        imageUrls: [],
+        state: 'Maharashtra',
+        location: 'Nashik, Maharashtra',
+        cropVariety: 'White Onion',
+        qualityGrade: 'A',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 3)),
+      ),
+      MarketplaceListing(
+        id: 'mp_potato_001',
+        farmerId: 'farmer10',
+        farmerName: 'Bharat Kumar',
+        contactPhone: '+91 9876543225',
+        cropName: 'Potato',
+        quantity: 5.0,
+        unit: 'quintal',
+        pricePerQuintal: 1800.0,
+        description: 'Fresh potatoes, good for chips and cooking, no sprouting.',
+        imageUrls: [],
+        state: 'Uttar Pradesh',
+        location: 'Agra, Uttar Pradesh',
+        cropVariety: 'Kufri Jyoti',
+        qualityGrade: 'A',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 2)),
+      ),
+      MarketplaceListing(
+        id: 'mp_cabbage_001',
+        farmerId: 'farmer11',
+        farmerName: 'Sunita Devi',
+        contactPhone: '+91 9876543226',
+        cropName: 'Cabbage',
+        quantity: 2.5,
+        unit: 'quintal',
+        pricePerQuintal: 1200.0,
+        description: 'Fresh green cabbage, organically grown in hill station.',
+        imageUrls: [],
+        state: 'Tamil Nadu',
+        location: 'Ooty, Tamil Nadu',
+        cropVariety: 'Green Cabbage',
+        qualityGrade: 'A+',
+        isOrganic: true,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      
+      // Cash Crops
+      MarketplaceListing(
+        id: 'mp_cotton_001',
+        farmerId: 'farmer12',
         farmerName: 'Gita Sharma',
         contactPhone: '+91 9876543214',
         cropName: 'Cotton',
         quantity: 1.5,
         unit: 'quintal',
         pricePerQuintal: 5500.0,
-        description: 'Premium cotton, grade A quality',
+        description: 'Premium BT cotton, grade A quality, pest resistant.',
         imageUrls: [],
         state: 'Gujarat',
         location: 'Surat, Gujarat',
@@ -209,6 +376,294 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
         isAvailable: true,
         status: 'active',
         dateListed: DateTime.now().subtract(const Duration(days: 5)),
+      ),
+      MarketplaceListing(
+        id: 'mp_cotton_002',
+        farmerId: 'farmer13',
+        farmerName: 'Ravi Patel',
+        contactPhone: '+91 9876543227',
+        cropName: 'Cotton',
+        quantity: 2.0,
+        unit: 'quintal',
+        pricePerQuintal: 5400.0,
+        description: 'Organic cotton, naturally grown without chemicals.',
+        imageUrls: [],
+        state: 'Telangana',
+        location: 'Adilabad, Telangana',
+        cropVariety: 'Organic Cotton',
+        qualityGrade: 'A',
+        isOrganic: true,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 6)),
+      ),
+      MarketplaceListing(
+        id: 'mp_sugarcane_001',
+        farmerId: 'farmer14',
+        farmerName: 'Mahesh Yadav',
+        contactPhone: '+91 9876543228',
+        cropName: 'Sugarcane',
+        quantity: 10.0,
+        unit: 'quintal',
+        pricePerQuintal: 3200.0,
+        description: 'High sucrose content sugarcane, suitable for sugar mills.',
+        imageUrls: [],
+        state: 'Uttar Pradesh',
+        location: 'Lucknow, Uttar Pradesh',
+        cropVariety: 'Co-0238',
+        qualityGrade: 'A',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 7)),
+      ),
+      
+      // Oilseeds
+      MarketplaceListing(
+        id: 'mp_soybean_001',
+        farmerId: 'farmer15',
+        farmerName: 'Deepak Jain',
+        contactPhone: '+91 9876543229',
+        cropName: 'Soybean',
+        quantity: 3.0,
+        unit: 'quintal',
+        pricePerQuintal: 4800.0,
+        description: 'Yellow soybean, high protein content, perfect for oil extraction.',
+        imageUrls: [],
+        state: 'Madhya Pradesh',
+        location: 'Indore, Madhya Pradesh',
+        cropVariety: 'JS-335',
+        qualityGrade: 'A',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 3)),
+      ),
+      MarketplaceListing(
+        id: 'mp_groundnut_001',
+        farmerId: 'farmer16',
+        farmerName: 'Jayesh Bhai',
+        contactPhone: '+91 9876543230',
+        cropName: 'Groundnut',
+        quantity: 2.5,
+        unit: 'quintal',
+        pricePerQuintal: 5200.0,
+        description: 'Bold groundnuts, high oil content, drought resistant variety.',
+        imageUrls: [],
+        state: 'Gujarat',
+        location: 'Rajkot, Gujarat',
+        cropVariety: 'GG-20',
+        qualityGrade: 'A+',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 4)),
+      ),
+      MarketplaceListing(
+        id: 'mp_mustard_001',
+        farmerId: 'farmer17',
+        farmerName: 'Hemant Singh',
+        contactPhone: '+91 9876543231',
+        cropName: 'Mustard',
+        quantity: 1.8,
+        unit: 'quintal',
+        pricePerQuintal: 6200.0,
+        description: 'Black mustard seeds, high oil content, aromatic variety.',
+        imageUrls: [],
+        state: 'Rajasthan',
+        location: 'Jaipur, Rajasthan',
+        cropVariety: 'Pusa Bold',
+        qualityGrade: 'A',
+        isOrganic: true,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 5)),
+      ),
+      
+      // Pulses
+      MarketplaceListing(
+        id: 'mp_tur_001',
+        farmerId: 'farmer18',
+        farmerName: 'Ashok Patil',
+        contactPhone: '+91 9876543232',
+        cropName: 'Tur Dal',
+        quantity: 2.0,
+        unit: 'quintal',
+        pricePerQuintal: 8500.0,
+        description: 'Premium quality tur dal, uniform size, high protein.',
+        imageUrls: [],
+        state: 'Maharashtra',
+        location: 'Latur, Maharashtra',
+        cropVariety: 'Asha (ICPL-87)',
+        qualityGrade: 'A+',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 2)),
+      ),
+      MarketplaceListing(
+        id: 'mp_chana_001',
+        farmerId: 'farmer19',
+        farmerName: 'Dinesh Kumar',
+        contactPhone: '+91 9876543233',
+        cropName: 'Chana',
+        quantity: 1.5,
+        unit: 'quintal',
+        pricePerQuintal: 7200.0,
+        description: 'Desi chana, small size, high protein, good for dal making.',
+        imageUrls: [],
+        state: 'Rajasthan',
+        location: 'Kota, Rajasthan',
+        cropVariety: 'Desi Chana',
+        qualityGrade: 'A',
+        isOrganic: true,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 3)),
+      ),
+      MarketplaceListing(
+        id: 'mp_moong_001',
+        farmerId: 'farmer20',
+        farmerName: 'Kavita Sharma',
+        contactPhone: '+91 9876543234',
+        cropName: 'Moong',
+        quantity: 1.0,
+        unit: 'quintal',
+        pricePerQuintal: 9500.0,
+        description: 'Green moong dal, fresh harvest, perfect for sprouts.',
+        imageUrls: [],
+        state: 'Rajasthan',
+        location: 'Jaipur, Rajasthan',
+        cropVariety: 'Pusa Vishal',
+        qualityGrade: 'A+',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      
+      // Fruits
+      MarketplaceListing(
+        id: 'mp_apple_001',
+        farmerId: 'farmer21',
+        farmerName: 'Rajinder Singh',
+        contactPhone: '+91 9876543235',
+        cropName: 'Apple',
+        quantity: 0.5,
+        unit: 'quintal',
+        pricePerQuintal: 8000.0,
+        description: 'Red delicious apples from Shimla, crisp and sweet.',
+        imageUrls: [],
+        state: 'Himachal Pradesh',
+        location: 'Shimla, Himachal Pradesh',
+        cropVariety: 'Red Delicious',
+        qualityGrade: 'A+',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(hours: 12)),
+      ),
+      MarketplaceListing(
+        id: 'mp_banana_001',
+        farmerId: 'farmer22',
+        farmerName: 'Sunil Patil',
+        contactPhone: '+91 9876543236',
+        cropName: 'Banana',
+        quantity: 1.0,
+        unit: 'quintal',
+        pricePerQuintal: 1800.0,
+        description: 'Robusta bananas, naturally ripened, perfect sweetness.',
+        imageUrls: [],
+        state: 'Maharashtra',
+        location: 'Jalgaon, Maharashtra',
+        cropVariety: 'Robusta',
+        qualityGrade: 'A',
+        isOrganic: true,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 2)),
+      ),
+      MarketplaceListing(
+        id: 'mp_orange_001',
+        farmerId: 'farmer23',
+        farmerName: 'Pradeep Kumar',
+        contactPhone: '+91 9876543237',
+        cropName: 'Orange',
+        quantity: 2.0,
+        unit: 'quintal',
+        pricePerQuintal: 3200.0,
+        description: 'Nagpur oranges, juicy and sweet, high vitamin C content.',
+        imageUrls: [],
+        state: 'Maharashtra',
+        location: 'Nagpur, Maharashtra',
+        cropVariety: 'Nagpur Orange',
+        qualityGrade: 'A+',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      
+      // Spices
+      MarketplaceListing(
+        id: 'mp_turmeric_001',
+        farmerId: 'farmer24',
+        farmerName: 'Murugan Raju',
+        contactPhone: '+91 9876543238',
+        cropName: 'Turmeric',
+        quantity: 0.8,
+        unit: 'quintal',
+        pricePerQuintal: 12500.0,
+        description: 'Salem turmeric, high curcumin content, bright yellow color.',
+        imageUrls: [],
+        state: 'Tamil Nadu',
+        location: 'Erode, Tamil Nadu',
+        cropVariety: 'Salem Turmeric',
+        qualityGrade: 'A+',
+        isOrganic: true,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 3)),
+      ),
+      MarketplaceListing(
+        id: 'mp_coriander_001',
+        farmerId: 'farmer25',
+        farmerName: 'Gopal Joshi',
+        contactPhone: '+91 9876543239',
+        cropName: 'Coriander',
+        quantity: 0.3,
+        unit: 'quintal',
+        pricePerQuintal: 18000.0,
+        description: 'Rajasthan coriander seeds, aromatic variety, good oil content.',
+        imageUrls: [],
+        state: 'Rajasthan',
+        location: 'Ramganj Mandi, Rajasthan',
+        cropVariety: 'Pant Haritima',
+        qualityGrade: 'A',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 4)),
+      ),
+      MarketplaceListing(
+        id: 'mp_chilli_001',
+        farmerId: 'farmer26',
+        farmerName: 'Venkat Rao',
+        contactPhone: '+91 9876543240',
+        cropName: 'Red Chilli',
+        quantity: 0.5,
+        unit: 'quintal',
+        pricePerQuintal: 15000.0,
+        description: 'Guntur red chillies, high pungency, deep red color.',
+        imageUrls: [],
+        state: 'Andhra Pradesh',
+        location: 'Guntur, Andhra Pradesh',
+        cropVariety: 'Teja',
+        qualityGrade: 'A+',
+        isOrganic: false,
+        isAvailable: true,
+        status: 'active',
+        dateListed: DateTime.now().subtract(const Duration(days: 2)),
       ),
     ];
   }
@@ -250,14 +705,19 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
                 _buildMyListingsTab(),
               ],
             ),
-      floatingActionButton: _currentUser?.userType == 'farmer'
-          ? FloatingActionButton.extended(
-              onPressed: _showAddListingDialog,
-              backgroundColor: Colors.purple[600],
-              icon: const Icon(Icons.add),
-              label: const Text('Add Listing'),
-            )
-          : null,
+      floatingActionButton: Consumer<AuthService>(
+        builder: (context, authService, child) {
+          final user = authService.currentUser;
+          if (user == null || user.userType != 'farmer') return Container();
+          
+          return FloatingActionButton.extended(
+            onPressed: _showAddListingDialog,
+            backgroundColor: Colors.purple[600],
+            icon: const Icon(Icons.add),
+            label: const Text('Add Listing'),
+          );
+        },
+      ),
     );
   }
 
@@ -526,16 +986,29 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> with TickerProvid
 
   /// Show add listing screen
   void _showAddListingDialog() async {
+    // Get current user from auth service
+    final authService = Provider.of<AuthService>(context, listen: false);
+    if (authService.currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please login to add listings'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const AddListingScreen(),
+        builder: (context) => AddListingScreen(currentUser: authService.currentUser!),
       ),
     );
     
     // If a listing was added successfully, refresh the data
     if (result == true) {
       setState(() => _isLoading = true);
+      _currentUser = authService.currentUser; // Update current user
       await _loadData();
       
       if (mounted) {

@@ -52,6 +52,7 @@ class AuthService extends ChangeNotifier {
     required String phone,
     required String soilType,
     required double landAreaAcres,
+    required String language,
   }) async {
     try {
       _isLoading = true;
@@ -72,6 +73,7 @@ class AuthService extends ChangeNotifier {
           'soilType': soilType,
           'landAreaAcres': landAreaAcres,
           'userType': 'farmer',
+          'language': language,
           'createdAt': DateTime.now(),
         };
 
@@ -86,6 +88,7 @@ class AuthService extends ChangeNotifier {
           soilType: soilType,
           landAreaAcres: landAreaAcres,
           userType: 'farmer',
+          language: language,
           createdAt: DateTime.now(),
         );
 
@@ -95,7 +98,7 @@ class AuthService extends ChangeNotifier {
       }
     } catch (e) {
       print('Registration error: $e');
-      throw e;
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -120,7 +123,7 @@ class AuthService extends ChangeNotifier {
       }
     } catch (e) {
       print('Login error: $e');
-      throw e;
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -136,7 +139,7 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print('Sign out error: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -146,6 +149,7 @@ class AuthService extends ChangeNotifier {
     String? phone,
     String? soilType,
     double? landAreaAcres,
+    String? language,
   }) async {
     if (_currentUser == null) return;
 
@@ -156,6 +160,7 @@ class AuthService extends ChangeNotifier {
       if (phone != null) updates['phone'] = phone;
       if (soilType != null) updates['soilType'] = soilType;
       if (landAreaAcres != null) updates['landAreaAcres'] = landAreaAcres;
+      if (language != null) updates['language'] = language;
 
       if (updates.isNotEmpty) {
         await _firestore.collection('users').doc(_currentUser!.id).update(updates);
@@ -163,7 +168,7 @@ class AuthService extends ChangeNotifier {
       }
     } catch (e) {
       print('Update profile error: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -173,7 +178,7 @@ class AuthService extends ChangeNotifier {
       await _auth.sendPasswordResetEmail(email: email);
     } catch (e) {
       print('Reset password error: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -192,7 +197,7 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print('Delete account error: $e');
-      throw e;
+      rethrow;
     }
   }
 }

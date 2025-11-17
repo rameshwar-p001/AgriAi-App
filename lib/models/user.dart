@@ -8,6 +8,7 @@ class User {
   final String soilType;
   final double landAreaAcres;
   final String userType; // 'farmer' or 'buyer'
+  final String language; // 'english', 'hindi', 'marathi'
   final DateTime createdAt;
 
   User({
@@ -18,6 +19,7 @@ class User {
     required this.soilType,
     required this.landAreaAcres,
     required this.userType,
+    required this.language,
     required this.createdAt,
   });
 
@@ -25,12 +27,13 @@ class User {
   factory User.fromFirestore(Map<String, dynamic> data, String documentId) {
     return User(
       id: documentId,
-      name: data['name'] ?? '',
-      email: data['email'] ?? '',
-      phone: data['phone'] ?? '',
-      soilType: data['soilType'] ?? '',
-      landAreaAcres: (data['landAreaAcres'] ?? 0.0).toDouble(),
-      userType: data['userType'] ?? 'farmer',
+      name: (data['name'] ?? '').toString(),
+      email: (data['email'] ?? '').toString(),
+      phone: (data['phone'] ?? '').toString(),
+      soilType: (data['soilType'] ?? 'Loamy').toString(),
+      landAreaAcres: double.tryParse((data['landAreaAcres'] ?? 0.0).toString()) ?? 0.0,
+      userType: (data['userType'] ?? 'farmer').toString(),
+      language: (data['language'] ?? 'english').toString(),
       createdAt: data['createdAt']?.toDate() ?? DateTime.now(),
     );
   }
@@ -44,6 +47,7 @@ class User {
       'soilType': soilType,
       'landAreaAcres': landAreaAcres,
       'userType': userType,
+      'language': language,
       'createdAt': createdAt,
     };
   }
@@ -61,6 +65,7 @@ class User {
       soilType: json['soilType'] ?? '',
       landAreaAcres: (json['landAreaAcres'] ?? 0.0).toDouble(),
       userType: json['userType'] ?? 'farmer',
+      language: json['language'] ?? 'english',
       createdAt: json['createdAt']?.toDate() ?? DateTime.now(),
     );
   }
@@ -73,6 +78,7 @@ class User {
     String? soilType,
     double? landAreaAcres,
     String? userType,
+    String? language,
   }) {
     return User(
       id: id,
@@ -82,6 +88,7 @@ class User {
       soilType: soilType ?? this.soilType,
       landAreaAcres: landAreaAcres ?? this.landAreaAcres,
       userType: userType ?? this.userType,
+      language: language ?? this.language,
       createdAt: createdAt,
     );
   }

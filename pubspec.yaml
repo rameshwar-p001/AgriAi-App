@@ -49,6 +49,10 @@ dependencies:
   # HTTP requests for APIs
   http: ^1.2.2
   
+  # Location and Weather
+  geolocator: ^12.0.0
+  geocoding: ^3.0.0
+  
   # UI enhancements
   google_fonts: ^6.2.1
   
@@ -62,6 +66,15 @@ dependencies:
   # PDF generation
   pdf: ^3.11.1
   printing: ^5.13.2
+  
+  # AI Chatbot dependencies
+  google_generative_ai: ^0.4.6
+  speech_to_text: ^7.0.0
+  flutter_tts: ^4.0.2
+  permission_handler: ^11.3.1
+  flutter_chat_ui: ^1.6.15
+  # OpenAI ChatGPT API (Alternative)
+  dart_openai: ^5.1.0
 
 dev_dependencies:
   flutter_test:
