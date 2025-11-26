@@ -61,7 +61,6 @@ flutter {
 }
 
 dependencies {
-    // Google Play Core for split installs and dynamic delivery
-    implementation("com.google.android.play:core:1.10.3")
-    implementation("com.google.android.play:core-ktx:1.8.1")
+    // Removing Google Play Core dependencies to avoid conflicts
+    // These are not essential for basic Flutter app functionality
 }
