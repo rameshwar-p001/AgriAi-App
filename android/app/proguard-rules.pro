@@ -46,3 +46,19 @@
 
 # Google Sign In
 -keep class com.google.android.gms.auth.** { *; }
+
+# Google Play Core rules for split installs and dynamic delivery
+-keep class com.google.android.play.core.** { *; }
+-keep class com.google.android.play.core.splitcompat.** { *; }
+-keep class com.google.android.play.core.splitinstall.** { *; }
+-keep class com.google.android.play.core.tasks.** { *; }
+-dontwarn com.google.android.play.core.**
+
+# Flutter Play Store split application
+-keep class io.flutter.embedding.android.FlutterPlayStoreSplitApplication { *; }
+-keep class io.flutter.embedding.engine.deferredcomponents.** { *; }
+
+# Additional Play Core classes
+-keep class com.google.android.play.core.appupdate.** { *; }
+-keep class com.google.android.play.core.review.** { *; }
+-keep class com.google.android.play.core.common.** { *; }
