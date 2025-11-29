@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../models/weather.dart';
 import 'login_screen.dart';
@@ -114,7 +115,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'AgriAI Dashboard',
+                    AppLocalizations.of(context)?.dashboard ?? 'AgriAI Dashboard',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -143,7 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         itemBuilder: (BuildContext context) => [
                           PopupMenuItem(
                             value: 'logout',
-                            child: Text('Logout'),
+                            child: Text(AppLocalizations.of(context)?.logout ?? 'Logout'),
                           ),
                         ],
                       ),
@@ -179,7 +180,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Welcome back,',
+                                  AppLocalizations.of(context)?.welcome ?? 'Welcome back,',
                                   style: TextStyle(
                                     color: Colors.white.withOpacity(0.9),
                                     fontSize: 16,
@@ -237,7 +238,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Expanded(
                             child: _buildQuickInfoCard(
-                              'Weather',
+                              AppLocalizations.of(context)?.weatherInfo ?? 'Weather',
                               _currentWeather != null ? '${_currentWeather!.temperature.toInt()}°C' : '26°C',
                               Icons.wb_sunny,
                               Color(0xFF2196F3),
@@ -246,7 +247,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           SizedBox(width: 8),
                           Expanded(
                             child: _buildQuickInfoCard(
-                              'Soil Type',
+                              AppLocalizations.of(context)?.soilType ?? 'Soil Type',
                               _currentUser?.soilType ?? 'Loamy',
                               Icons.eco,
                               Color(0xFF8BC34A),
@@ -319,7 +320,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                               _buildFeatureCard(
-                                'Weather Info',
+                                AppLocalizations.of(context)?.weatherInfo ?? 'Weather Info',
                                 'Get weather updates and forecasts',
                                 Icons.wb_sunny,
                                 Color(0xFFFFEB3B),
@@ -329,7 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                               _buildFeatureCard(
-                                'Disease Detection',
+                                AppLocalizations.of(context)?.diseaseDetection ?? 'Disease Detection',
                                 'Identify crop diseases with AI',
                                 Icons.local_hospital,
                                 Color(0xFFF44336),
@@ -339,7 +340,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                               _buildFeatureCard(
-                                'Soil Based Recommendation',
+                                AppLocalizations.of(context)?.cropRecommendation ?? 'Soil Based Recommendation',
                                 'Get crop recommendations based on soil analysis',
                                 Icons.bar_chart,
                                 Color(0xFF009688),
@@ -423,7 +424,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Weather Today',
+                                AppLocalizations.of(context)?.weatherInfo ?? 'Weather Today',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -640,7 +641,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         },
         icon: Icon(Icons.chat, color: Colors.white),
-        label: Text('AI Assistant 🤖', style: TextStyle(color: Colors.white)),
+        label: Text('${AppLocalizations.of(context)?.chatbot ?? 'AI Assistant'} 🤖', style: TextStyle(color: Colors.white)),
         backgroundColor: Color(0xFF4CAF50),
       ),
     );
@@ -888,7 +889,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Icon(Icons.person, color: Color(0xFF4CAF50)),
                   SizedBox(width: 8),
-                  Text('Edit Profile'),
+                  Text(AppLocalizations.of(context)?.edit ?? 'Edit Profile'),
                 ],
               ),
               content: SingleChildScrollView(
@@ -898,7 +899,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     TextField(
                       controller: nameController,
                       decoration: InputDecoration(
-                        labelText: 'Full Name',
+                        labelText: AppLocalizations.of(context)?.fullName ?? 'Full Name',
                         prefixIcon: Icon(Icons.person_outline),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -910,7 +911,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       controller: phoneController,
                       keyboardType: TextInputType.phone,
                       decoration: InputDecoration(
-                        labelText: 'Phone Number',
+                        labelText: AppLocalizations.of(context)?.phoneNumber ?? 'Phone Number',
                         prefixIcon: Icon(Icons.phone_outlined),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -921,7 +922,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     DropdownButtonFormField<String>(
                       value: selectedSoilType,
                       decoration: InputDecoration(
-                        labelText: 'Soil Type',
+                        labelText: AppLocalizations.of(context)?.soilType ?? 'Soil Type',
                         prefixIcon: Icon(Icons.terrain),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -958,7 +959,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: Text('Cancel'),
+                  child: Text(AppLocalizations.of(context)?.cancel ?? 'Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -974,7 +975,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     backgroundColor: Color(0xFF4CAF50),
                     foregroundColor: Colors.white,
                   ),
-                  child: Text('Save Changes'),
+                  child: Text(AppLocalizations.of(context)?.save ?? 'Save Changes'),
                 ),
               ],
             );

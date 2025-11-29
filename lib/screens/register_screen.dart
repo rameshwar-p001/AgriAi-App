@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../providers/language_provider.dart';
+import '../l10n/app_localizations.dart';
 import 'login_screen.dart';
 import 'dashboard_screen.dart';
 
@@ -24,7 +26,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
   final _confirmPasswordController = TextEditingController();
   
   String _selectedSoilType = 'Loamy';
-  String _selectedLanguage = 'English';
+  String _selectedLanguageCode = 'en';
   final _landAreaController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -40,10 +42,10 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
     'Saline'
   ];
 
-  final List<String> _languages = [
-    'English',
-    'Hindi',
-    'Marathi'
+  List<Map<String, String>> get _languages => [
+    {'code': 'en', 'name': 'English'},
+    {'code': 'hi', 'name': 'हिन्दी'},
+    {'code': 'mr', 'name': 'मराठी'},
   ];
 
   @override
@@ -117,7 +119,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
         phone: _phoneController.text.trim(),
         soilType: _selectedSoilType,
         landAreaAcres: double.parse(_landAreaController.text),
-        language: _selectedLanguage.toLowerCase(),
+        language: _selectedLanguageCode,
       );
 
       if (user != null) {
@@ -229,7 +231,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
         
         // Title
         Text(
-          'Join AgriAI',
+          AppLocalizations.of(context)?.appTitle ?? 'Join AgriAI',
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -241,7 +243,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
         
         // Subtitle
         Text(
-          'Revolutionize your farming with AI',
+          AppLocalizations.of(context)?.welcome ?? 'Revolutionize your farming with AI',
           style: TextStyle(
             fontSize: 16,
             color: Colors.white.withOpacity(0.9),
@@ -275,7 +277,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
           children: [
             // Form Title
             Text(
-              'Create Your Account',
+              AppLocalizations.of(context)?.signup ?? 'Create Your Account',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -301,7 +303,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
             // Name Field
             _buildStyledTextField(
               controller: _nameController,
-              label: 'Full Name',
+              label: AppLocalizations.of(context)?.fullName ?? 'Full Name',
               icon: Icons.person_outline,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -318,7 +320,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
             // Email Field
             _buildStyledTextField(
               controller: _emailController,
-              label: 'Email Address',
+              label: AppLocalizations.of(context)?.email ?? 'Email Address',
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
               validator: (value) {
@@ -336,7 +338,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
             // Phone Field
             _buildStyledTextField(
               controller: _phoneController,
-              label: 'Phone Number',
+              label: AppLocalizations.of(context)?.phoneNumber ?? 'Phone Number',
               icon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
               validator: (value) {
@@ -357,19 +359,24 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
 
             // Language Selection Dropdown
             _buildStyledDropdown(
-              value: _selectedLanguage,
-              label: 'Preferred Language',
+              value: _selectedLanguageCode,
+              label: AppLocalizations.of(context)?.selectLanguage ?? 'Select Language',
               icon: Icons.language_outlined,
               items: _languages.map((language) {
                 return DropdownMenuItem(
-                  value: language,
-                  child: Text(language),
+                  value: language['code'],
+                  child: Text(language['name']!),
                 );
               }).toList(),
-              onChanged: (value) {
+              onChanged: (value) async {
                 setState(() {
-                  _selectedLanguage = value!;
+                  _selectedLanguageCode = value!;
                 });
+                // Update language provider immediately when user selects
+                if (mounted) {
+                  final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+                  await languageProvider.changeLanguage(value!);
+                }
               },
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -383,7 +390,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
             // Password Field
             _buildPasswordField(
               controller: _passwordController,
-              label: 'Password',
+              label: AppLocalizations.of(context)?.password ?? 'Password',
               icon: Icons.lock_outlined,
               obscureText: _obscurePassword,
               onToggleVisibility: () {
@@ -406,7 +413,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
             // Confirm Password Field
             _buildPasswordField(
               controller: _confirmPasswordController,
-              label: 'Confirm Password',
+              label: AppLocalizations.of(context)?.confirmPassword ?? 'Confirm Password',
               icon: Icons.lock_outline_rounded,
               obscureText: _obscureConfirmPassword,
               onToggleVisibility: () {
@@ -430,7 +437,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
             // Soil Type Dropdown
             _buildStyledDropdown(
               value: _selectedSoilType,
-              label: 'Soil Type',
+              label: AppLocalizations.of(context)?.soilType ?? 'Soil Type',
               icon: Icons.terrain_outlined,
               items: _soilTypes.map((soil) {
                 return DropdownMenuItem(

@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-// import 'package:firebase_app_check/firebase_app_check.dart'; // Disabled temporarily
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -16,8 +16,9 @@ import 'screens/marketplace_screen.dart';
 import 'services/crop_recommendation_service.dart';
 import 'screens/soil_based_recommendation_screen.dart';
 import 'screens/disease_detection_screen.dart';
-
 import 'services/ai_chatbot_service.dart';
+import 'providers/language_provider.dart';
+import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,16 +26,9 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   
-  // Initialize Firebase AppCheck - DISABLED temporarily due to API not enabled
-  // Enable AppCheck in production after enabling the API in Google Cloud Console
+  
   try {
-    // Completely commented out to avoid 403 errors
-    /*
-    await FirebaseAppCheck.instance.activate(
-      androidProvider: AndroidProvider.debug,
-      appleProvider: AppleProvider.debug,
-    ).timeout(const Duration(seconds: 10));
-    */
+   
     debugPrint('Firebase AppCheck disabled temporarily - will work without it');
   } catch (e) {
     // Handle App Check initialization errors gracefully
@@ -56,35 +50,43 @@ class AgriAIApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (context) => AuthService()),
         ChangeNotifierProvider(create: (context) => AIChatbotService()),
+        ChangeNotifierProvider(create: (context) => LanguageProvider()),
       ],
-      child: MaterialApp(
-        title: 'AgriAI - Smart Farming Assistant',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.green,
-            brightness: Brightness.light,
-          ),
-          useMaterial3: true,
-        ),
-        home: Consumer<AuthService>(
-          builder: (context, authService, child) {
-            return authService.isSignedIn 
-                ? DashboardScreen()
-                : const LoginScreen();
-          },
-        ),
-        routes: {
-          '/login': (context) => const LoginScreen(),
-          '/register': (context) => const RegisterScreen(),
-          '/dashboard': (context) => DashboardScreen(),
-          '/crop-suggestions': (context) => const CropSuggestionScreen(),
-          '/fertilizer-tips': (context) => const FertilizerTipsScreen(),
-          '/fertilizer-recommendation': (context) => const FertilizerRecommendationScreen(),
-          '/market-price': (context) => const MarketPriceScreen(),
-          '/weather': (context) => const WeatherScreen(),
-          '/marketplace': (context) => const MarketplaceScreen(),
-          '/soil-recommendation': (context) => const SoilBasedRecommendationScreen(),
-          '/disease-detection': (context) => const DiseaseDetectionScreen(),
+      child: Consumer<LanguageProvider>(
+        builder: (context, languageProvider, child) {
+          return MaterialApp(
+            title: 'AgriAI - Smart Farming Assistant',
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: languageProvider.locale,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.green,
+                brightness: Brightness.light,
+              ),
+              useMaterial3: true,
+            ),
+            home: Consumer<AuthService>(
+              builder: (context, authService, child) {
+                return authService.isSignedIn 
+                    ? DashboardScreen()
+                    : const LoginScreen();
+              },
+            ),
+            routes: {
+              '/login': (context) => const LoginScreen(),
+              '/register': (context) => const RegisterScreen(),
+              '/dashboard': (context) => DashboardScreen(),
+              '/crop-suggestions': (context) => const CropSuggestionScreen(),
+              '/fertilizer-tips': (context) => const FertilizerTipsScreen(),
+              '/fertilizer-recommendation': (context) => const FertilizerRecommendationScreen(),
+              '/market-price': (context) => const MarketPriceScreen(),
+              '/weather': (context) => const WeatherScreen(),
+              '/marketplace': (context) => const MarketplaceScreen(),
+              '/soil-recommendation': (context) => const SoilBasedRecommendationScreen(),
+              '/disease-detection': (context) => const DiseaseDetectionScreen(),
+            },
+          );
         },
       ),
     );
